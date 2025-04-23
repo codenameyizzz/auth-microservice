@@ -1,25 +1,21 @@
-require('dotenv').config();
-const bodyParser = require('body-parser');
-const express = require('express');
+require("dotenv").config();
+const express = require("express");
+const bodyParser = require("body-parser");
+const authRoutes = require("./routes/auth");
+const db = require("./models");
+
 const app = express();
-const authRoutes = require('./routes/auth');
+app.use(bodyParser.json()); // Parses JSON bodies
+app.use(express.json()); // Alternative JSON parser
+app.use("/api/auth", authRoutes);
 
-// Middleware
-app.use(express.json());
-app.use('/api/auth', authRoutes);
+// Sync database and start server
+db.sequelize
+  .sync({ alter: true })
+  .then(() => console.log("✅ Database synchronized"))
+  .catch((err) => console.error("❌ Failed to sync database:", err));
 
-// Database
-const db = require('./models');
-db.sequelize.sync({ alter: true })
-  .then(() => {
-    console.log('✅ Database synchronized');
-  })
-  .catch((err) => {
-    console.error('❌ Failed to sync database:', err);
-  });
-
-// Start server
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`Auth service running at http://localhost:${PORT}`);
-});
+app.listen(PORT, () =>
+  console.log(`Auth service running at http://localhost:${PORT}`)
+);

@@ -11,4 +11,7 @@ Install dependencies untuk database
  - untuk MySQL : npm install express cors bcrypt jsonwebtoken dotenv sequelize mysql2
 
 
-
+*extra (idk if necessary)
+- npm install sequelize sqlite3
+- npm install axios
+- npm install mysql-migrations

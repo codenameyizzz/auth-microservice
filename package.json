@@ -16,13 +16,24 @@
     "bcrypt": "^5.1.1",
     "bcryptjs": "^3.0.2",
     "cors": "^2.8.5",
-    "dotenv": "^16.4.7",
+    "dotenv": "^16.5.0",
     "express": "^5.1.0",
     "jsonwebtoken": "^9.0.2",
+    "mysql-migrations": "^1.0.7",
     "mysql2": "^3.14.0",
-    "sequelize": "^6.37.7"
+    "sequelize": "^6.37.7",
+    "sqlite3": "^5.1.7"
   },
   "devDependencies": {
     "nodemon": "^3.1.9"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/codenameyizzz/auth-microservice.git"
+  },
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/codenameyizzz/auth-microservice/issues"
+  },
+  "homepage": "https://github.com/codenameyizzz/auth-microservice#readme"
 }

@@ -1,134 +1,80 @@
-require('dotenv').config();
-
-const { User } = require("../models");
 const axios = require("axios");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
-const { caesarEncrypt } = require("../helpers/caesarCipher");
-
+const { User, Fakultas, Prodi } = require("../models");
 const { getExternalApiToken } = require("../services/authService");
 
-exports.register = async (req, res) => {
-  const { name, nim, prodi, fakultas, tahun_lulus, password } = req.body;
-
-  if (!name || !nim || !prodi || !fakultas || !tahun_lulus || !password) {
-    return res.status(400).json({ message: "Semua field wajib diisi" });
-  }
-
+exports.register = async (req, res, next) => {
   try {
-    // 1. Ambil token API eksternal
+    const { name, nim, prodi, fakultas, tahun_lulus, password } = req.body;
+
     const token = await getExternalApiToken();
-    if (!token)
-      return res
-        .status(500)
-        .json({ message: "Gagal mendapatkan token eksternal" });
+    if (!token) throw new Error("Failed to retrieve external API token");
 
-    // 2. Panggil API alumni
-    const response = await axios.get(
+    const apiRes = await axios.get(
       "https://cis-dev.del.ac.id/api/library-api/alumni",
-      {
-        headers: { Authorization: `Bearer ${token}` },
-        params: { nim },
-      }
+      { headers: { Authorization: `Bearer ${token}` }, params: { nim } }
     );
 
-    const alumniData = response.data?.data?.alumni?.[0];
-    if (!alumniData)
-      return res.status(404).json({ message: "Data alumni tidak ditemukan" });
-
-    console.log(
-      "📋 Data dari API alumni:",
-      JSON.stringify(alumniData, null, 2)
-    );
-    console.log("🧾 Data input user:", {
-      name,
-      nim,
-      prodi,
-      fakultas,
-      tahun_lulus,
-    });
-
-    // 3. Validasi kesesuaian data
+    const alumni = apiRes.data.data.alumni?.[0];
     if (
-      alumniData.nim !== nim ||
-      alumniData.nama.trim().toLowerCase() !== name.trim().toLowerCase() ||
-      alumniData.prodi_name.trim().toLowerCase() !==
-        prodi.trim().toLowerCase() ||
-      alumniData.fakultas.trim().toLowerCase() !==
-        fakultas.trim().toLowerCase() ||
-      parseInt(alumniData.tahun_lulus) !== parseInt(tahun_lulus)
+      !alumni ||
+      alumni.nim !== nim ||
+      alumni.nama !== name ||
+      alumni.prodi_name !== prodi ||
+      String(alumni.tahun_lulus) !== String(tahun_lulus) ||
+      alumni.fakultas !== fakultas
     ) {
       return res
         .status(400)
-        .json({ message: "Data tidak sesuai dengan catatan alumni" });
+        .json({ message: "Data mismatch with external API" });
     }
 
-    // 4. Simpan user (asumsikan fakultas_id dan prodi_id disediakan dari Laravel atau mapping tersendiri)
+    const [fakultasRecord] = await Fakultas.findOrCreate({
+      where: { name: fakultas },
+    });
+    const [prodiRecord] = await Prodi.findOrCreate({ where: { name: prodi } });
+
+    const hashed = await bcrypt.hash(password, 10);
     const user = await User.create({
+      name,
       nim,
-      name, // akan terenkripsi otomatis di hook
-      password, // akan di-hash otomatis
       tahun_lulus,
-      fakultas_id: 1, // ← ganti sesuai mapping dari Laravel DB
-      prodi_id: 1, // ← ganti sesuai mapping dari Laravel DB
+      fakultasId: fakultasRecord.id,
+      prodiId: prodiRecord.id,
+      password: hashed,
+    });
+
+    const tokenPayload = { sub: user.id, role: "alumni" };
+    const jwtToken = jwt.sign(tokenPayload, process.env.JWT_SECRET, {
+      expiresIn: "2h",
     });
 
     res
       .status(201)
-      .json({ message: "Registrasi berhasil", user: { nim: user.nim, name } });
+      .json({ token: jwtToken, user: { id: user.id, name: user.name } });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Terjadi kesalahan saat registrasi" });
+    next(err);
   }
 };
 
-exports.login = async (req, res) => {
-  console.log('DARI LARAVEL:', req.body);
+exports.login = async (req, res, next) => {
   try {
-    const { username, password } = req.body;
-
-    // Cari user berdasarkan username atau email
-    const user = await User.findOne({
-      where: { nim: username },
-    });
-
-    if (!user) {
-      return res.status(404).json({ error: "User tidak ditemukan" });
+    const { nim, password } = req.body;
+    const user = await User.findOne({ where: { nim } });
+    if (!user || !(await bcrypt.compare(password, user.password))) {
+      return res.status(401).json({ message: "Invalid credentials" });
     }
-
-    // Cek password
-    const passwordMatch = await bcrypt.compare(password, user.password);
-    if (!passwordMatch) {
-      return res.status(401).json({ error: "Password salah" });
-    }
-
-    // Buat token
-    const token = jwt.sign(
-      { uid: user.id },
-      process.env.JWT_SECRET,
-      { expiresIn: "3h" }
-    );
-
-    const refreshToken = jwt.sign(
-      { uid: user.id },
-      process.env.REFRESH_SECRET,
-      { expiresIn: "7d" }
-    );
-
-    res.json({
-      result: true,
-      success: "Login berhasil",
-      user: {
-        id: user.id,
-        username: user.username,
-        role: user.role
-      },
-      token,
-      refresh_token: refreshToken
+    const tokenPayload = { sub: user.id, role: user.role };
+    const jwtToken = jwt.sign(tokenPayload, process.env.JWT_SECRET, {
+      expiresIn: "2h",
     });
-
+    res.json({ token: jwtToken, user: { id: user.id, name: user.name } });
   } catch (err) {
-    console.error("Login error:", err);
-    res.status(500).json({ error: "Terjadi kesalahan saat login" });
+    next(err);
   }
+};
+
+exports.logout = (req, res) => {
+  res.status(200).json({ message: "Logged out" });
 };
