@@ -13,10 +13,6 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.STRING,
         allowNull: false,
       },
-      password: {
-        type: DataTypes.STRING,
-        allowNull: false,
-      },
       tahun_lulus: {
         type: DataTypes.INTEGER,
         allowNull: false,
@@ -36,6 +32,15 @@ module.exports = (sequelize, DataTypes) => {
           model: "Prodi",
           key: "id",
         },
+      },
+      password: {
+        type: DataTypes.STRING,
+        allowNull: false,
+      },
+      role: {
+        type: DataTypes.STRING,
+        allowNull: false,
+        defaultValue: "alumni",
       },
     },
     {

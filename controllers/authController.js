@@ -20,7 +20,7 @@ exports.register = async (req, res, next) => {
     if (
       !alumni ||
       alumni.nim !== nim ||
-      alumni.nama !== name ||
+      alumni.nama.trim().toLowerCase() !== name.trim().toLowerCase() ||
       alumni.prodi_name !== prodi ||
       String(alumni.tahun_lulus) !== String(tahun_lulus) ||
       alumni.fakultas !== fakultas
@@ -40,19 +40,23 @@ exports.register = async (req, res, next) => {
       name,
       nim,
       tahun_lulus,
-      fakultasId: fakultasRecord.id,
-      prodiId: prodiRecord.id,
+      fakultas_id: fakultasRecord.id,
+      prodi_id: prodiRecord.id,
       password: hashed,
     });
 
     const tokenPayload = { sub: user.id, role: "alumni" };
     const jwtToken = jwt.sign(tokenPayload, process.env.JWT_SECRET, {
-      expiresIn: "2h",
+      expiresIn: "1h",
     });
 
-    res
-      .status(201)
-      .json({ token: jwtToken, user: { id: user.id, name: user.name } });
+    res.status(201).json({
+      token: jwtToken,
+      user: {
+        id: user.id,
+        name: user.name,
+      },
+    });
   } catch (err) {
     next(err);
   }
@@ -67,9 +71,17 @@ exports.login = async (req, res, next) => {
     }
     const tokenPayload = { sub: user.id, role: user.role };
     const jwtToken = jwt.sign(tokenPayload, process.env.JWT_SECRET, {
-      expiresIn: "2h",
+      expiresIn: "1h",
     });
-    res.json({ token: jwtToken, user: { id: user.id, name: user.name } });
+
+    res.json({
+      token: jwtToken,
+      user: {
+        id: user.id,
+        name: user.name,
+        role: user.role,
+      },
+    });
   } catch (err) {
     next(err);
   }
