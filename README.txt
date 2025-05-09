@@ -15,3 +15,23 @@ Install dependencies untuk database
 - npm install sequelize sqlite3
 - npm install axios
 - npm install mysql-migrations
+
+env lokal :
+DB_HOST=localhost
+DB_PORT=3306
+DB_USER=root
+DB_PASS=
+DB_NAME=db_node
+JWT_SECRET=goro-majima-pirating-in-hawaii
+REFRESH_SECRET=rahasia_refresh_jwt
+
+env docker :
+
+DB_PORT=3306
+DB_USER=appuser
+DB_PASS=apppass
+DB_NAME=db_node
+JWT_SECRET=goro-majima-pirating-in-hawaii
+REFRESH_SECRET=rahasia_refresh_jwt
+
+

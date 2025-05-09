@@ -5,6 +5,10 @@ const sequelize = new Sequelize(dbConfig.DB, dbConfig.USER, dbConfig.PASSWORD, {
   host: dbConfig.HOST,
   dialect: dbConfig.dialect,
   port: dbConfig.PORT,
+  define: {
+    freezeTableName: true,
+    timestamps: false,
+  },
 });
 
 const db = {};
